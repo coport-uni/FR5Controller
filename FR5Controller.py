@@ -7,9 +7,9 @@ from ctypes import sizeof
 class FR5Controller():
     def __init__(self, ip_address):
         '''
-        Docstring for __init__
+        This function initalize connection between pc and controller
         
-        :param self: Description
+        Input: str
         '''
         self.robot = Robot.RPC(ip_address)
         self.setup_debugger("info")
@@ -19,9 +19,9 @@ class FR5Controller():
     
     def setup_debugger(self, debug_level):
         '''
-        Docstring for setup_debugger
+        This function select mode between debug and production level.
         
-        :param self: Description
+        Input: str
         '''
         self.logger = logging.getLogger()
         if debug_level == "info":
@@ -40,9 +40,8 @@ class FR5Controller():
 
     def setup_gripper(self):
         '''
-        Docstring for setup_gripper
+        This function initialize gripper setup
         
-        :param self: Description
         '''
         # Initialize GripperConfig. 1-Robotiq, 2-Huiling, 3-Tianji, 4-Dahuan, 5-Knowledge
         error = self.robot.SetGripperConfig(company=4,device=0)
@@ -65,24 +64,26 @@ class FR5Controller():
 
     def run_error_analyze(self, input_error):
         '''
-        Docstring for run_error_analyze
+        This function compare known error codes and raise exception with helpful message.
         
-        :param self: Description
-        :param input_error: Description
+        Input: int
         '''
         if input_error == 0:
             self.logger.info("OK")
 
+        if input_error == 14:
+            self.logger.error(input_error)
+            raise Exception("RobotMotionError. Clear Error!")
+
         else:
             self.logger.error(input_error)
-            raise Exception("CommError")
+            raise Exception("CommError. Reboot!")
     
-    def run_gripper_movement(self, target_gripper_position, target_gripper_speed : int, target_gripper_power : int):
+    def run_gripper_movement(self, target_gripper_position : int, target_gripper_speed : int, target_gripper_power : int):
         '''
-        Docstring for run_gripper_movement
+        This function run gripper with given parameters. it is usually integrated with joint or eef functions. Every variables are percentage-based.
         
-        :param self: Description
-        :param position_gripper: Description
+        Input: int, int, int
         '''
         current_position = self.get_gripper_position()
 
@@ -100,9 +101,9 @@ class FR5Controller():
     
     def get_gripper_position(self):
         '''
-        Docstring for get_gripper_position
-        
-        :param self: Description
+        This function get current gripper postion.
+
+        Output: int
         '''
         # Initialize GripperConfig. 0-reset, 1-activate
         error, fault, position = self.robot.GetGripperCurPosition()
@@ -112,11 +113,9 @@ class FR5Controller():
     
     def run_joint_movement(self, target_joint_list : list, target_gripper_position : int, target_gripper_speed = 100, target_gripper_power = 50, target_joint_speed = 30):
         '''
-        Docstring for run_joint_movement
+        This function run joint operation with given parameters. Every variables are percentage-based except list. Default values are recommended values from docs.
         
-        :param self: Description
-        :param list_joint: Description
-        :type list_joint: list
+        Input: list, int, int, int, int
         '''
         # 0-joint, 1-eef
         self.robot.SingularAvoidStart(0)
@@ -132,9 +131,9 @@ class FR5Controller():
 
     def get_joint_position(self):
         '''
-        Docstring for get_joint_position
-        
-        :param self: Description
+        This function get current joint postion.
+
+        Output: list
         '''
         error, current_joint_list = self.robot.GetActualJointPosDegree()
         self.run_error_analyze(error)
@@ -143,6 +142,11 @@ class FR5Controller():
         return current_joint_list
 
     def run_eef_movement_ptp(self, target_eef_list : list, target_gripper_position : int, target_gripper_speed = 100, target_gripper_power = 50, target_eef_speed = 30):
+        '''
+        This function run eef operation with given parameters. Every variables are percentage-based except list. Default values are recommended values from docs.
+        
+        Input: list, int, int, int, int
+        '''
         # 0-joint, 1-eef
         self.robot.SingularAvoidStart(1)
         
@@ -156,57 +160,14 @@ class FR5Controller():
         self.logger.info("EEF_PTP_PositionReached")
     
     def get_eef_position(self):
+        '''
+        This function get current eef postion.
+
+        Output: list
+        '''
         error, current_eef_list = self.robot.GetActualTCPPose()
         self.run_error_analyze(error)
         time.sleep(1)
 
         return current_eef_list
-
-def main():
-    '''
-    Docstring for main
-    '''
-    fc = FR5Controller("192.168.58.2")
-
-    movement_range = 200
-    movement_speed = 100
-    movement_test = 50
-
-    example_joint_1 = [0, -99.66753387451172, 117.4729995727539, -108.61497497558594, -91.7260513305664, 74.25582885742188]
-    example_joint_2 = [90, -99.66753387451172, 117.4729995727539, -108.61497497558594, -91.7260513305664, 74.25582885742188]
-
-    example_eef_1 = [-310.64605712890625, 167.83993530273438, 237.2095184326172, 179.6305694580078, -0.00029896487831138074, 45.72968292236328]
-    example_eef_2 = [-310.64605712890625 + (movement_range / math.sqrt(2)), 167.83993530273438 + (movement_range / math.sqrt(2)), 237.2095184326172, 179.6305694580078, -0.00029896487831138074, 45.72968292236328]
-    example_eef_3 = [-310.64605712890625 + (movement_range / math.sqrt(2)), 167.83993530273438 + (movement_range / math.sqrt(2)), 237.2095184326172 - movement_range, 179.6305694580078, -0.00029896487831138074, 45.72968292236328]
-    example_eef_4 = [-310.64605712890625, 167.83993530273438, 237.2095184326172 - movement_range, 179.6305694580078, -0.00029896487831138074, 45.72968292236328]
-
-    example_eef_5 = [74.24925994873047, 322.0446472167969, 90, -179.36241149902344, 3.5878381729125977, 42.54720687866211]
-    example_eef_6 = [74.24925994873047 - (movement_test / math.sqrt(2)), 322.0446472167969 + (movement_test /  math.sqrt(2)), 90, -179.36241149902344, 3.5878381729125977, 42.54720687866211]
-
-    
-    # print(fc.get_eef_position())
-
-    fc.run_eef_movement_ptp(example_eef_5, 100, target_eef_speed = movement_speed)
-    time.sleep(3)
-    fc.run_eef_movement_ptp(example_eef_6, 100, target_eef_speed = movement_speed)
-    time.sleep(3)
-    
-    # for i in range(3):
-    #     fc.run_eef_movement_ptp(example_eef_1, 100, target_eef_speed = movement_speed)
-    #     fc.run_eef_movement_ptp(example_eef_2, 0, target_eef_speed = movement_speed)
-    #     fc.run_eef_movement_ptp(example_eef_3, 100, target_eef_speed = movement_speed)
-    #     fc.run_eef_movement_ptp(example_eef_4, 0, target_eef_speed = movement_speed)
-    #     fc.run_eef_movement_ptp(example_eef_1, 100, target_eef_speed = movement_speed)
-
-        # fc.run_joint_movement(example_joint_1, 100, target_joint_speed = movement_speed)
-        # print(fc.get_joint_position())
-        # fc.run_joint_movement(example_joint_2, 0, target_joint_speed = movement_speed)
-        # print(fc.get_joint_position())
-
-        # fc.run_gripper_movement(100)
-        # fc.run_gripper_movement(0)
-    
-    fc.robot.CloseRPC()
-
-if __name__ == "__main__":
-    main()
+        
