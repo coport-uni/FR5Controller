@@ -1,5 +1,6 @@
 import time
 import logging
+import math
 from fairino import Robot
 from ctypes import sizeof
 
@@ -13,7 +14,9 @@ class FR5Controller():
         self.robot = Robot.RPC(ip_address)
         self.setup_debugger("info")
         self.setup_gripper()
-        
+
+        self.robot.ResetAllError()
+    
     def setup_debugger(self, debug_level):
         '''
         Docstring for setup_debugger
@@ -70,12 +73,11 @@ class FR5Controller():
         if input_error == 0:
             self.logger.info("OK")
 
-            return 0
         else:
             self.logger.error(input_error)
             raise Exception("CommError")
     
-    def run_gripper_movement(self, target_gripper_position, target_gripper_speed = 100, target_gripper_power = 50):
+    def run_gripper_movement(self, target_gripper_position, target_gripper_speed : int, target_gripper_power : int):
         '''
         Docstring for run_gripper_movement
         
@@ -108,7 +110,7 @@ class FR5Controller():
 
         return position
     
-    def run_joint_movement(self, target_joint_list : list, target_gripper_position : int, target_joint_speed = 30):
+    def run_joint_movement(self, target_joint_list : list, target_gripper_position : int, target_gripper_speed = 100, target_gripper_power = 50, target_joint_speed = 30):
         '''
         Docstring for run_joint_movement
         
@@ -116,15 +118,18 @@ class FR5Controller():
         :param list_joint: Description
         :type list_joint: list
         '''
+        # 0-joint, 1-eef
+        self.robot.SingularAvoidStart(0)
+
         error = self.robot.MoveJ(joint_pos=target_joint_list, tool = 1, user = 0, vel = target_joint_speed)
         self.run_error_analyze(error)
 
-        self.run_gripper_movement(target_gripper_position)
+        self.run_gripper_movement(target_gripper_position, target_gripper_speed, target_gripper_power)
+
+        self.robot.SingularAvoidEnd()
         
         self.logger.info("JointPositionReached")
-        
-        return 0
-    
+
     def get_joint_position(self):
         '''
         Docstring for get_joint_position
@@ -137,55 +142,71 @@ class FR5Controller():
 
         return current_joint_list
 
+    def run_eef_movement_ptp(self, target_eef_list : list, target_gripper_position : int, target_gripper_speed = 100, target_gripper_power = 50, target_eef_speed = 30):
+        # 0-joint, 1-eef
+        self.robot.SingularAvoidStart(1)
+        
+        error = self.robot.MoveCart(desc_pos=target_eef_list, tool = 1, user = 0, vel = target_eef_speed)
+        self.run_error_analyze(error)
+
+        self.run_gripper_movement(target_gripper_position, target_gripper_speed, target_gripper_power)
+
+        self.robot.SingularAvoidEnd()
+        
+        self.logger.info("EEF_PTP_PositionReached")
+    
+    def get_eef_position(self):
+        error, current_eef_list = self.robot.GetActualTCPPose()
+        self.run_error_analyze(error)
+        time.sleep(1)
+
+        return current_eef_list
+
 def main():
     '''
     Docstring for main
     '''
     fc = FR5Controller("192.168.58.2")
 
+    movement_range = 200
+    movement_speed = 100
+    movement_test = 50
+
     example_joint_1 = [0, -99.66753387451172, 117.4729995727539, -108.61497497558594, -91.7260513305664, 74.25582885742188]
     example_joint_2 = [90, -99.66753387451172, 117.4729995727539, -108.61497497558594, -91.7260513305664, 74.25582885742188]
-    for i in range(10):
-        fc.run_joint_movement(example_joint_1, 100, 100)
-        fc.run_joint_movement(example_joint_2, 0, 100)
+
+    example_eef_1 = [-310.64605712890625, 167.83993530273438, 237.2095184326172, 179.6305694580078, -0.00029896487831138074, 45.72968292236328]
+    example_eef_2 = [-310.64605712890625 + (movement_range / math.sqrt(2)), 167.83993530273438 + (movement_range / math.sqrt(2)), 237.2095184326172, 179.6305694580078, -0.00029896487831138074, 45.72968292236328]
+    example_eef_3 = [-310.64605712890625 + (movement_range / math.sqrt(2)), 167.83993530273438 + (movement_range / math.sqrt(2)), 237.2095184326172 - movement_range, 179.6305694580078, -0.00029896487831138074, 45.72968292236328]
+    example_eef_4 = [-310.64605712890625, 167.83993530273438, 237.2095184326172 - movement_range, 179.6305694580078, -0.00029896487831138074, 45.72968292236328]
+
+    example_eef_5 = [74.24925994873047, 322.0446472167969, 90, -179.36241149902344, 3.5878381729125977, 42.54720687866211]
+    example_eef_6 = [74.24925994873047 - (movement_test / math.sqrt(2)), 322.0446472167969 + (movement_test /  math.sqrt(2)), 90, -179.36241149902344, 3.5878381729125977, 42.54720687866211]
+
+    
+    # print(fc.get_eef_position())
+
+    fc.run_eef_movement_ptp(example_eef_5, 100, target_eef_speed = movement_speed)
+    time.sleep(3)
+    fc.run_eef_movement_ptp(example_eef_6, 100, target_eef_speed = movement_speed)
+    time.sleep(3)
+    
+    # for i in range(3):
+    #     fc.run_eef_movement_ptp(example_eef_1, 100, target_eef_speed = movement_speed)
+    #     fc.run_eef_movement_ptp(example_eef_2, 0, target_eef_speed = movement_speed)
+    #     fc.run_eef_movement_ptp(example_eef_3, 100, target_eef_speed = movement_speed)
+    #     fc.run_eef_movement_ptp(example_eef_4, 0, target_eef_speed = movement_speed)
+    #     fc.run_eef_movement_ptp(example_eef_1, 100, target_eef_speed = movement_speed)
+
+        # fc.run_joint_movement(example_joint_1, 100, target_joint_speed = movement_speed)
         # print(fc.get_joint_position())
+        # fc.run_joint_movement(example_joint_2, 0, target_joint_speed = movement_speed)
+        # print(fc.get_joint_position())
+
         # fc.run_gripper_movement(100)
         # fc.run_gripper_movement(0)
+    
+    fc.robot.CloseRPC()
 
 if __name__ == "__main__":
     main()
-
-
-def move(self):
-    j1 = [-11.904, -99.669, 117.473, -108.616, -91.726, 74.256]
-    # j1 = [0, 0, 0, 0, 0, 0]
-    j2 = [-45.615, -106.172, 124.296, -107.151, -91.282, 74.255]
-    j3 = [-29.777, -84.536, 109.275, -114.075, -86.655, 74.257]
-    j4 = [-31.154, -95.317, 94.276, -88.079, -89.740, 74.256]
-    desc_pos1 = [-419.524, -13.000, 351.569, -178.118, 0.314, 3.833]
-    desc_pos2 = [-321.222, 185.189, 335.520, -179.030, -1.284, -29.869]
-    desc_pos3 = [-487.434, 154.362, 308.576, 176.600, 0.268, -14.061]
-    desc_pos4 = [-443.165, 147.881, 480.951, 179.511, -0.775, -15.409]
-    offset_pos = [0.0] * 6
-    epos = [0.0] * 4
-
-    tool = 1
-    user = 0
-
-    self.robot.SetSpeed(20)
-
-    # result = self.robot.MoveJ(joint_pos=j1, tool=tool, user=user, vel=vel, acc=acc, ovl=ovl, exaxis_pos=epos, blendT=blendT, offset_flag=flag, offset_pos=offset_pos)
-    result = self.robot.MoveJ(joint_pos=j1, tool=tool, user=user)
-    print(result)
-    # self.robot.MoveL(desc_pos=desc_pos2, tool=tool, user=user, vel=vel, acc=acc, ovl=ovl, blendR=blendR, blendMode=blendMode, exaxis_pos=epos, search=search, offset_flag=flag, offset_pos=offset_pos,
-    #                   oacc=oacc, velAccParamMode=velAccMode)
-
-    # self.robot.MoveC(desc_pos_p=desc_pos3, tool_p=tool, user_p=user, vel_p=vel, acc_p=acc, exaxis_pos_p=epos, offset_flag_p=flag, offset_pos_p=offset_pos, desc_pos_t=desc_pos4, tool_t=tool, user_t=user, vel_t=vel,
-    #                   acc_t=acc, exaxis_pos_t=epos, offset_flag_t=flag, offset_pos_t=offset_pos, ovl=ovl, blendR=blendR, oacc=oacc, velAccParamMode=velAccMode)
-
-    # self.robot.Circle(desc_pos_p=desc_pos3, tool_p=tool, user_p=user, vel_p=vel, acc_p=acc, exaxis_pos_p=epos, desc_pos_t=desc_pos1, tool_t=tool, user_t=user, vel_t=vel, acc_t=acc, exaxis_pos_t=epos, ovl=ovl,
-    #                    offset_flag=flag, offset_pos=offset_pos, oacc=oacc, blendR=-1, velAccParamMode=velAccMode)
-
-    # self.robot.MoveCart(desc_pos=desc_pos4, tool=tool, user=user, vel=vel, acc=acc,ovl=ovl, blendT=blendT, config=-1)
-
-    self.robot.CloseRPC()
