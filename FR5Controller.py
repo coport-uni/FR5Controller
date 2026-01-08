@@ -15,7 +15,7 @@ class FR5Controller():
         self.setup_debugger("info")
         self.setup_gripper()
 
-        self.robot.ResetAllError()
+        # self.robot.ResetAllError()
     
     def setup_debugger(self, debug_level):
         '''
@@ -62,7 +62,7 @@ class FR5Controller():
         self.run_error_analyze(error)
         time.sleep(1)
 
-    def run_error_analyze(self, input_error):
+    def run_error_analyze(self, input_error : int):
         '''
         This function compare known error codes and raise exception with helpful message.
         
@@ -70,8 +70,9 @@ class FR5Controller():
         '''
         if input_error == 0:
             self.logger.info("OK")
+            # return 0
 
-        if input_error == 14:
+        elif input_error == 14:
             self.logger.error(input_error)
             raise Exception("RobotMotionError. Clear Error!")
 
@@ -92,7 +93,6 @@ class FR5Controller():
                               block = 0, type = 0, rotNum = 0, rotVel = 0, rotTorque = 0)
             self.run_error_analyze(error)
             time.sleep(1)
-
             current_position = self.get_gripper_position()
 
         self.logger.info("GripperPositionReached")
@@ -122,7 +122,6 @@ class FR5Controller():
 
         error = self.robot.MoveJ(joint_pos=target_joint_list, tool = 1, user = 0, vel = target_joint_speed)
         self.run_error_analyze(error)
-
         self.run_gripper_movement(target_gripper_position, target_gripper_speed, target_gripper_power)
 
         self.robot.SingularAvoidEnd()
@@ -152,7 +151,6 @@ class FR5Controller():
         
         error = self.robot.MoveCart(desc_pos=target_eef_list, tool = 1, user = 0, vel = target_eef_speed)
         self.run_error_analyze(error)
-
         self.run_gripper_movement(target_gripper_position, target_gripper_speed, target_gripper_power)
 
         self.robot.SingularAvoidEnd()
@@ -170,4 +168,3 @@ class FR5Controller():
         time.sleep(1)
 
         return current_eef_list
-        
