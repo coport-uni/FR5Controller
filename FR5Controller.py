@@ -97,8 +97,6 @@ class FR5Controller():
 
         self.logger.info("GripperPositionReached")
         
-        return 0
-    
     def get_gripper_position(self):
         '''
         This function get current gripper postion.
@@ -168,3 +166,28 @@ class FR5Controller():
         time.sleep(1)
 
         return current_eef_list
+
+    def run_eef_movement_linear(self, target_eef_list : list, target_gripper_position : int, target_gripper_speed = 100, target_gripper_power = 50, target_eef_speed = 30):
+        '''
+        This function run eef operation with given parameters. Every variables are percentage-based except list. Default values are recommended values from docs.
+        
+        Input: list, int, int, int, int
+        '''
+        # 0-joint, 1-eef
+        self.robot.SingularAvoidStart(1)
+        
+        error = self.robot.MoveL(desc_pos=target_eef_list, tool = 1, user = 0, vel = target_eef_speed)
+        self.run_error_analyze(error)
+        self.run_gripper_movement(target_gripper_position, target_gripper_speed, target_gripper_power)
+
+        self.robot.SingularAvoidEnd()
+        
+        self.logger.info("EEF_PTP_PositionReached")
+
+def main():
+    fc = FR5Controller("192.168.58.2")
+
+    example_eef_1 = [-310.64605712890625, 167.83993530273438, 237.2095184326172, 179.6305694580078, -0.00029896487831138074, 45.72968292236328]
+    fc.run_eef_movement_linear(example_eef_1, 0)
+
+main()
