@@ -5,7 +5,7 @@ def main():
     '''
     Docstring for main
     '''
-    fc = FR5Controller("192.168.58.2")
+    fc = FR5Controller( )
 
     movement_range = 200
     movement_speed = 100

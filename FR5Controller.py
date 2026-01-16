@@ -176,13 +176,14 @@ class FR5Controller():
         # 0-joint, 1-eef
         self.robot.SingularAvoidStart(1)
         
-        error = self.robot.MoveL(desc_pos=target_eef_list, tool = 1, user = 0, vel = target_eef_speed)
+        error = self.robot.MoveL(desc_pos=target_eef_list, tool = 0, user = 0, vel = target_eef_speed, joint_pos = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], acc = 0.0, ovl = 100.0, blendR = -1.0, \
+                                exaxis_pos = [0.0, 0.0, 0.0, 0.0], search = 0, offset_flag = 0, offset_pos = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], overSpeedStrategy = 0, speedPercent = 10 )
         self.run_error_analyze(error)
         self.run_gripper_movement(target_gripper_position, target_gripper_speed, target_gripper_power)
 
         self.robot.SingularAvoidEnd()
         
-        self.logger.info("EEF_PTP_PositionReached")
+        self.logger.info("EEF_Linear_PositionReached")
 
 def main():
     fc = FR5Controller("192.168.58.2")
@@ -190,7 +191,23 @@ def main():
     example_eef_1 = [-310.64605712890625, 167.83993530273438, 237.2095184326172, 179.6305694580078, -0.00029896487831138074, 45.72968292236328]
     fc.run_eef_movement_linear(example_eef_1, 0)
     '''
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+Traceback (most recent call last):
+  File "/home/sungwoo/workspace/FR5Controller/FR5Controller.py", line 209, in <module>
+    main()
+  File "/home/sungwoo/workspace/FR5Controller/FR5Controller.py", line 192, in main
+    fc.run_eef_movement_linear(example_eef_1, 0)
+  File "/home/sungwoo/workspace/FR5Controller/FR5Controller.py", line 179, in run_eef_movement_linear
+    error = self.robot.MoveL(desc_pos=target_eef_list, tool = 0, user = 0, vel = target_eef_speed, joint_pos = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], acc = 0.0, ovl = 100, blendR = -1.0, \
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "Robot.py", line 793, in Robot.RPC.log_call.wrapper
+  File "Robot.py", line 198, in Robot.xmlrpc_timeout.wrapper
+  File "Robot.py", line 1199, in Robot.RPC.MoveL
+  File "/usr/lib/python3.12/xmlrpc/client.py", line 1122, in __call__
+    return self.__send(self.__name, args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/xmlrpc/client.py", line 1461, in __request
+    response = self.__transport.request(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
   File "/usr/lib/python3.12/xmlrpc/client.py", line 1166, in request
     return self.single_request(host, handler, request_body, verbose)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
