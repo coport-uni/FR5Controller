@@ -3,9 +3,10 @@ import time, math
 
 def main():
     '''
-    Docstring for main
+    This function run eef scenario with given parameters. exmaple with 2 FR5 robots    
     '''
-    fc = FR5Controller( )
+    fc1 = FR5Controller("192.168.58.2")
+    fc2 = FR5Controller("192.168.59.2")
 
     movement_range = 200
     movement_speed = 100
@@ -22,30 +23,25 @@ def main():
     example_eef_5 = [74.24925994873047, 322.0446472167969, 90, -179.36241149902344, 3.35878381729125977, 42.54720687866211]
     example_eef_6 = [74.24925994873047 - (movement_test / math.sqrt(2)), 322.0446472167969 + (movement_test /  math.sqrt(2)), 90, -179.36241149902344, 3.5878381729125977, 42.54720687866211]
 
-    
-    # print(fc.get_eef_position())
+    for i in range(3):
+        fc1.run_eef_movement_ptp(example_eef_1, 100, target_eef_speed = movement_speed)
+        fc2.run_eef_movement_ptp(example_eef_1, 100, target_eef_speed = movement_speed)
 
-    # fc.run_eef_movement_ptp(example_eef_5, 100, target_eef_speed = movement_speed)
-    # time.sleep(3)
-    # fc.run_eef_movement_ptp(example_eef_6, 100, target_eef_speed = movement_speed)
-    # time.sleep(3)
-    
-    for i in range(100):
-        fc.run_eef_movement_ptp(example_eef_1, 100, target_eef_speed = movement_speed)
-        fc.run_eef_movement_ptp(example_eef_2, 0, target_eef_speed = movement_speed)
-        fc.run_eef_movement_ptp(example_eef_3, 100, target_eef_speed = movement_speed)
-        fc.run_eef_movement_ptp(example_eef_4, 0, target_eef_speed = movement_speed)
-        fc.run_eef_movement_ptp(example_eef_1, 100, target_eef_speed = movement_speed)
+        fc1.run_eef_movement_ptp(example_eef_2, 0, target_eef_speed = movement_speed)
+        fc2.run_eef_movement_ptp(example_eef_2, 0, target_eef_speed = movement_speed)
 
-        # fc.run_joint_movement(example_joint_1, 100, target_joint_speed = movement_speed)
-        # print(fc.get_joint_position())
-        # fc.run_joint_movement(example_joint_2, 0, target_joint_speed = movement_speed)
-        # print(fc.get_joint_position())
+        fc1.run_eef_movement_ptp(example_eef_3, 100, target_eef_speed = movement_speed)
+        fc2.run_eef_movement_ptp(example_eef_3, 100, target_eef_speed = movement_speed)
 
-        # fc.run_gripper_movement(100)
-        # fc.run_gripper_movement(0)
-    
-    fc.robot.CloseRPC()
+        fc1.run_eef_movement_ptp(example_eef_4, 0, target_eef_speed = movement_speed)
+        fc2.run_eef_movement_ptp(example_eef_4, 0, target_eef_speed = movement_speed)
+
+        fc1.run_eef_movement_ptp(example_eef_1, 100, target_eef_speed = movement_speed)
+        fc2.run_eef_movement_ptp(example_eef_1, 100, target_eef_speed = movement_speed)
+
+
+    fc1.robot.CloseRPC()
+    fc2.robot.CloseRPC()
 
 if __name__ == "__main__":
     main()
